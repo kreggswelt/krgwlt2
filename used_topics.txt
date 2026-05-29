@@ -1,0 +1,223 @@
+Mały miś szuka miodu w lesie
+Przyjazny lis pomaga zagubionemu zajączkowi
+Delfin ratuje małego żółwia
+Odważna wiewiórka dzieli się orzechami
+2025-12-15: Der freundliche Fuchs hilft dem verlorenen Häschen
+2025-12-15: Der Delfin rettet die kleine Schildkröte
+2025-12-16: Das mutige Eichhörnchen teilt Nüsse
+2025-12-16: Die weise Eule unterrichtet die Waldtiere
+2025-12-16: Die fröhlichen Entchen lernen schwimmen
+2025-12-16: Das Kätzchen findet ein neues Zuhause
+2025-12-17: Der Welpe lernt zu teilen
+2025-12-17: Die kleine Maus hilft dem großen Löwen
+2025-12-18: Der Hase und die Schildkröte lernen Freundschaft
+2025-12-18: Der Elefant vergisst und lernt sich zu entschuldigen
+2025-12-19: Der Papagei lernt die Wahrheit zu sagen
+2025-12-19: Der kleine Pinguin lernt Mut
+2025-12-20: Die Grille singt für Freunde
+2025-12-20: Der Marienkäfer hilft im Garten
+2025-12-21: Der Schmetterling lernt Geduld
+2025-12-21: Der Igel teilt Äpfel
+2025-12-22: Die Kuh gibt Milch für alle
+2025-12-22: Das Küken lernt mutig zu sein
+2025-12-23: Das Schaf teilt seine Wolle
+2025-12-23: Das Pferd hilft auf dem Bauernhof
+2025-12-24: Das Schweinchen lernt Sauberkeit
+2025-12-24: Das Kaninchen pflanzt Karotten
+2025-12-25: Die Ziege klettert auf den Berg
+2025-12-25: Die Ente lernt fliegen
+2025-12-26: Die Gans führt Freunde nach Hause
+2025-12-26: Der Truthahn lernt Bescheidenheit
+2025-12-27: Der Esel hilft beim Tragen
+2025-12-27: Die Ratte lernt Freundlichkeit
+2025-12-30: Der Hamster sammelt Wintervorräte
+2025-12-30: Der Biber baut ein Haus für die Familie
+2025-12-31: Der Otter spielt im Wasser
+2025-12-31: Der Elch beschützt den Wald
+2026-01-01: Der Wolf lernt Freundschaft
+2026-01-01: Der Luchs hilft kleinen Tieren
+2026-01-02: Das Wildschwein sucht Essen im Wald
+2026-01-02: Das Reh lernt Schnelligkeit
+2026-01-03: Der Hase lernt Mut
+2026-01-03: Der Fuchs lernt Ehrlichkeit
+2026-01-04: Der Bär erwacht aus dem Winterschlaf
+2026-01-04: Der Panda isst Bambus und teilt
+2026-01-05: Der Koala schläft auf dem Baum
+2026-01-05: Das Känguru trägt sein Baby im Beutel
+2026-01-06: Die Giraffe streckt sich nach hohen Blättern
+2026-01-06: Das Zebra lernt über Streifen
+2026-01-07: Der Löwe lernt sanft zu sein
+2026-01-07: Der Tiger lernt zu teilen
+2026-01-08: Der Affe spielt mit Freunden
+2026-01-08: Der Gorilla beschützt die Familie
+2026-01-09: Der Schimpanse lernt Neues
+2026-01-09: Der Orang-Utan hilft im Dschungel
+2026-01-10: Das Nilpferd schwimmt im Fluss
+2026-01-10: Das Nashorn verteidigt sein Territorium
+2026-01-11: Das Krokodil lernt sanft zu sein
+2026-01-11: Die Schlange lernt Freundschaft
+2026-01-12: Die Schildkröte gewinnt langsam das Rennen
+2026-01-12: Die Eidechse sonnt sich
+2026-01-13: Das Chamäleon wechselt Farben
+2026-01-13: Der Leguan lernt klettern
+2026-01-14: Der Salamander lernt schwimmen
+2026-01-14: Der Frosch springt in den Teich
+2026-01-15: Die Kröte lernt singen
+2026-01-15: Der Molch findet ein neues Zuhause
+2026-01-16: Der Delfin lernt Sprünge
+2026-01-16: Der Wal singt Lieder
+2026-01-17: Der Hai lernt freundlich zu sein
+2026-01-17: Der Oktopus hilft Freunden
+2026-01-18: Der Tintenfisch lernt sich zu verstecken
+2026-01-18: Die Qualle schwimmt im Ozean
+2026-01-19: Der Seestern hilft am Meeresgrund
+2026-01-19: Die Krabbe lernt geradeaus zu laufen
+2026-01-20: Der Hummer teilt Essen
+2026-01-20: Die Garnele lernt schwimmen
+2026-01-21: Das Seepferdchen tanzt im Wasser
+2026-01-21: Der kleine Fisch lernt im Schwarm
+2026-01-22: Der Lachs kehrt nach Hause zurück
+2026-01-22: Die Forelle springt im Bach
+2026-01-23: Der Hecht lernt Geduld
+2026-01-23: Der Adler fliegt hoch am Himmel
+2026-01-24: Der Falke lernt jagen
+2026-01-24: Der Habicht beschützt das Nest
+2026-01-25: Die Eule lehrt Weisheit
+2026-01-25: Der Uhu hilft in der Nacht
+2026-01-26: Die Krähe lernt zu teilen
+2026-01-26: Die Elster sammelt glänzende Dinge
+2026-01-27: Die Dohle lernt in der Gruppe
+2026-01-27: Die Taube trägt Nachrichten
+2026-01-28: Der Spatz singt am Morgen
+2026-01-28: Die Meise teilt Essen
+2026-01-29: Das Rotkehlchen lernt singen
+2026-01-29: Die Nachtigall singt am schönsten
+2026-01-30: Die Schwalbe baut ein Nest
+2026-01-30: Der Storch bringt Glück
+2026-01-31: Der Reiher fängt Fische
+2026-01-31: Der Schwan schwimmt auf dem See
+2026-02-01: Der Pelikan teilt Fische
+2026-02-01: Der Flamingo steht auf einem Bein
+2026-02-04: Der Papagei lernt sprechen
+2026-02-04: Der Tukan hat einen bunten Schnabel
+2026-02-05: Der Kolibri trinkt Nektar
+2026-02-05: Der Specht klopft an den Baum
+2026-02-05: Der Kuckuck singt im Wald
+2026-02-05: Der kleine Dachs gräbt einen Bau
+2026-02-05: Der Waschbär wäscht sein Essen
+2026-02-05: Das Stinktier lernt Freunde zu machen
+2026-02-06: Der Maulwurf findet den Weg nach oben
+2026-02-06: Die Fledermaus fliegt in der Nacht
+2026-02-06: Der Igel rollt sich zusammen
+2026-02-06: Das Eichhörnchen versteckt Nüsse für den Winter
+2026-02-06: Der Marder lernt zu klettern
+2026-02-06: Der Iltis findet einen Freund
+2026-02-06: Das Wiesel ist schnell und flink
+2026-02-07: Der Nerz schwimmt im Bach
+2026-02-08: Die Maus baut ein gemütliches Nest
+2026-02-10: Die Rennmaus läuft sehr schnell
+2026-02-11: Das Meerschweinchen teilt Gemüse
+2026-02-12: Der Goldhamster füllt seine Backen
+2026-02-13: Die Wüstenrennmaus gräbt im Sand
+2026-02-14: Das Chinchilla hat weiches Fell
+2026-02-15: Der Präriehund warnt seine Familie
+2026-02-16: Das Murmeltier schläft im Winter
+2026-02-17: Das Eichhörnchen springt von Baum zu Baum
+2026-02-18: Der Siebenschläfer schläft sehr lange
+2026-02-19: Die Haselmaus klettert geschickt
+2026-02-20: Der Gartenschläfer sammelt Vorräte
+2026-02-21: Die Birkenmaus ist sehr klein
+2026-02-22: Die Springmaus hüpft weit
+2026-02-23: Der Lemming wandert mit seiner Familie
+2026-02-24: Die Wühlmaus gräbt Gänge
+2026-02-25: Die Feldmaus sammelt Körner
+2026-02-26: Die Waldmaus versteckt sich gut
+2026-02-27: Die Brandmaus lebt im Schilf
+2026-02-28: Der Biber baut einen Damm
+2026-03-01: Die Bisamratte schwimmt geschickt
+2026-03-02: Das Stachelschwein hat spitze Stacheln
+2026-03-03: Das Gürteltier rollt sich ein
+2026-03-04: Der Ameisenbär frisst Ameisen
+2026-03-05: Das Faultier hängt am Baum
+2026-03-06: Der Tapir badet im Fluss
+2026-03-07: Das Capybara ist das größte Nagetier
+2026-03-08: Der Puma schleicht durch den Wald
+2026-03-09: Der Jaguar klettert auf Bäume
+2026-03-10: Der Ozelot jagt in der Nacht
+2026-03-11: Der Karakal springt hoch
+2026-03-12: Die Wildkatze lebt im Wald
+2026-03-13: Der Luchs hat Pinselohren
+2026-03-14: Der Gepard ist sehr schnell
+2026-03-15: Die Hyäne lacht laut
+2026-03-16: Der Schakal sucht Nahrung
+2026-03-17: Der Kojote heult den Mond an
+2026-03-18: Der Dingo lebt in Australien
+2026-03-20: Der Fuchs ist schlau und listig
+2026-03-21: Der Polarfuchs hat weißes Fell
+2026-03-22: Der Wüstenfuchs hat große Ohren
+2026-03-23: Der Rotfuchs jagt Mäuse
+2026-03-24: Der Graufuchs klettert auf Bäume
+2026-03-25: Der Marderhund sieht aus wie ein Waschbär
+2026-03-26: Der Tanuki ist ein japanischer Hund
+2026-03-27: Das Alpaka hat weiches Fell
+2026-03-28: Das Lama spuckt manchmal
+2026-03-29: Das Vikunja lebt in den Bergen
+2026-03-30: Das Guanako läuft schnell
+2026-03-31: Das Kamel hat einen Höcker
+2026-04-01: Das Dromedar hat zwei Höcker
+2026-04-02: Der Yak lebt im Himalaya
+2026-04-03: Der Wasserbüffel badet gern
+2026-04-04: Der Bison ist sehr stark
+2026-04-05: Der Wisent lebt im Wald
+2026-04-06: Die Antilope springt elegant
+2026-04-07: Die Gazelle rennt schnell
+2026-04-08: Das Gnu wandert weit
+2026-04-09: Der Springbock springt hoch
+2026-04-10: Die Impala ist sehr wendig
+2026-04-11: Der Kudu hat gedrehte Hörner
+2026-04-12: Der Eland ist die größte Antilope
+2026-04-13: Die Oryx hat lange Hörner
+2026-04-14: Der Steinbock klettert auf Felsen
+2026-04-15: Die Gämse lebt in den Bergen
+2026-04-16: Der Mufflon hat große Hörner
+2026-04-18: Das Mähnenschaf hat lange Wolle
+2026-04-19: Das Dickhornschaf lebt in Nordamerika
+2026-04-20: Der Moschusochse hat langes Fell
+2026-04-21: Die Saiga-Antilope hat eine besondere Nase
+2026-04-22: Der Rentier zieht den Schlitten
+2026-04-23: Das Karibu wandert weit
+2026-04-24: Der Elch hat ein großes Geweih
+2026-04-25: Der Hirsch röhrt im Herbst
+2026-04-26: Das Reh springt durch den Wald
+2026-04-27: Der Damhirsch hat geflecktes Fell
+2026-04-28: Der Rothirsch ist sehr groß
+2026-04-29: Der Sikahirsch kommt aus Asien
+2026-04-30: Der Weißwedelhirsch wedelt mit dem Schwanz
+2026-05-01: Der Maultierhirsch hat große Ohren
+2026-05-02: Der Wapiti ist ein großer Hirsch
+2026-05-03: Der Axis-Hirsch hat weiße Punkte
+2026-05-04: Der Sambarhirsch lebt in Asien
+2026-05-05: Der Barasingha hat viele Geweihenden
+2026-05-06: Der Davidshirsch war fast ausgestorben
+2026-05-07: Das Moschustier produziert Moschus
+2026-05-08: Das Wasserreh hat keine Geweihe
+2026-05-09: Das Muntjak bellt wie ein Hund
+2026-05-10: Der Pudú ist der kleinste Hirsch
+2026-05-11: Der Andenhirsch lebt in Südamerika
+2026-05-12: Der Pampashirsch lebt in der Pampa
+2026-05-13: Das Ren hilft dem Weihnachtsmann
+2026-05-14: Der Elch schwimmt im See
+2026-05-15: Die Giraffe ist das höchste Tier
+2026-05-16: Das Okapi sieht aus wie ein Zebra
+2026-05-17: Das Flusspferd gähnt weit
+2026-05-18: Das Zwergflusspferd ist kleiner
+2026-05-19: Das Warzenschwein hat Warzen
+2026-05-20: Das Pinselohrschwein hat Pinsel an den Ohren
+2026-05-21: Das Hirscheber hat Hörner
+2026-05-22: Das Sulawesi-Hirscheber lebt auf einer Insel
+2026-05-23: Das Babirusa hat gebogene Zähne
+2026-05-24: Das Pekari lebt in Amerika
+2026-05-25: Das Halsbandpekari hat ein Halsband
+2026-05-26: Das Weißbartpekari hat einen Bart
+2026-05-27: Das Chaco-Pekari wurde spät entdeckt
+2026-05-28: Der Tapir hat einen kleinen Rüssel
