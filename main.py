@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import datetime
 import subprocess
 import random
@@ -35,12 +36,12 @@ LANGUAGE_CONFIG = {
 #     ...
 # }
 
-NUM_IMAGES = 8  # 8 unique scenes (faster generation)
+NUM_IMAGES = 5
 IMAGE_WIDTH = 1080
 IMAGE_HEIGHT = 1920
 IMAGE_MODEL = "flux"
 
-STORY_MAX_WORDS = 130
+STORY_MAX_WORDS = 300
 
 TOPICS_FILE = "topics.txt"
 
@@ -224,18 +225,24 @@ def choose_topic_for_today():
     return selected_topic
 
 def generate_story_with_pollinations(topic: str) -> str:
-    """Generate a short children's story in the target language using Paid Pollinations API."""
+    """Generate a self-help / psychological reflection in German for women 18+."""
     
     lang_name = LANGUAGE_CONFIG["name"]
     
-    # Combine system and prompt into one clear instruction
+    system_prompt = (
+        "Du bist eine einfühlsame Psychologin und Life-Coach. "
+        "Deine Worte sind warm, ermutigend und weise."
+    )
     full_prompt = (
-        f"Write a short children's story in {lang_name} language (ages 3-8) strictly about the topic: {topic}. "
-        f"Do not change the animals or the subject. The story must be exactly about the title. "
-        f"Length: 80-120 words. Simple language. Only the story content, no title."
+        f"Schreibe eine kurze, einfühlsame Selbsthilfe-Reflexion auf {lang_name} "
+        f"zum Thema: {topic}. "
+        f"Sprich eine erwachsene Frau (18+) direkt an. "
+        f"Sei warmherzig, psychologisch fundiert und motivierend. "
+        f"Gib konkrete, alltagstaugliche Einsichten. "
+        f"Länge: 80-120 Wörter. Kein Titel. Nur der Inhalt."
     )
     
-    print(f"[story] Geschichte generieren ({lang_name}): {topic}")
+    print(f"[story] Selbsthilfe-Text generieren ({lang_name}): {topic}")
     
     url = "https://gen.pollinations.ai/v1/chat/completions"
     headers = {
@@ -245,7 +252,7 @@ def generate_story_with_pollinations(topic: str) -> str:
     payload = {
         "model": "openai",
         "messages": [
-            {"role": "system", "content": "You are a creative children's story author."},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": full_prompt}
         ]
     }
@@ -257,25 +264,29 @@ def generate_story_with_pollinations(topic: str) -> str:
             r = requests.post(url, headers=headers, json=payload, timeout=60)
             if r.status_code != 200:
                 print(f"[story] API Error (Attempt {attempt+1}/{max_retries}): {r.status_code} - {r.text}")
-                continue
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
+                break
                 
             data = r.json()
             if "choices" in data and data["choices"]:
                 text = data["choices"][0]["message"]["content"].strip()
             else:
                 print(f"[story] Unexpected API response format: {data}")
-                continue
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
+                break
 
             words = text.split()
             
-            # VALIDATION: Ensure minimum story length to prevent short videos
             if len(words) < 50:
                 print(f"[story] ⚠️ Geschichte zu kurz ({len(words)} Wörter), neuer Versuch {attempt + 1}/{max_retries}...")
                 if attempt < max_retries - 1:
                     time.sleep(2)
                     continue
-                else:
-                    raise ValueError(f"Geschichte zu kurz nach {max_retries} Versuchen: {len(words)} Wörter")
+                break
 
             if len(words) > STORY_MAX_WORDS:
                 text = " ".join(words[:STORY_MAX_WORDS])
@@ -290,26 +301,106 @@ def generate_story_with_pollinations(topic: str) -> str:
             print(f"[story] Exception (Attempt {attempt+1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
                 time.sleep(2)
-            else:
-                 # Fallback story to ensure pipeline continuity
-                fallback = f"Es war einmal {topic}. Es war ein schöner Tag. Die Tiere spielten zusammen im Wald. Sie waren sehr glücklich. Sie sangen und tanzten. Die Sonne schien am Himmel. Die Vögel flogen überall. Es war wunderbar. Alle Freunde hatten viel Spaß. Und sie lebten glücklich bis ans Ende ihrer Tage."
-                print(f"[story] ⚠️ Verwende Fallback-Geschichte")
-                with open(STORY_FILE, "w", encoding="utf-8") as f:
-                    f.write(fallback)
-                return fallback
+                continue
+            break
+    
+    # Fallback after all retries exhausted
+    fallback = (
+        f"Manchmal vergessen wir, wie stark wir wirklich sind. {topic} "
+        f"Du darfst dir Zeit nehmen. Du darfst Nein sagen. "
+        f"Deine Gefühle sind wichtig. Deine Bedürfnisse zählen. "
+        f"Jeder Tag ist eine neue Chance, dir selbst näherzukommen. "
+        f"Sei sanft mit dir. Wachse in deinem eigenen Tempo. "
+        f"Du bist genug, genau so wie du bist."
+    )
+    print(f"[story] ⚠️ Verwende Fallback-Geschichte")
+    with open(STORY_FILE, "w", encoding="utf-8") as f:
+        f.write(fallback)
+    return fallback
+
+FALLBACK_SCENES = [
+    "stickman meditating with peaceful thoughts around head",
+    "stickman looking in mirror seeing their best self",
+    "stickman watering a small growing plant of confidence",
+    "stickman letting go of a balloon representing fear",
+    "stickman climbing a mountain step by step",
+    "stickman embracing another stickman in friendship",
+    "stickman writing goals on a whiteboard",
+    "stickman standing tall with arms wide open",
+    "stickman holding a glowing heart in their hands",
+    "stickman walking through a door of new opportunities",
+    "stickman sitting at a desk thinking creatively",
+    "stickman planting seeds of kindness around them",
+    "stickman reaching up to touch a star",
+    "stickman holding hands in a circle of support",
+    "stickman reading a book under a tree of wisdom",
+    "stickman building blocks one on top of another",
+    "stickman jumping with joy arms in the air",
+    "stickman painting a colorful canvas of their future",
+    "stickman balancing on one leg finding inner peace",
+    "stickman opening a curtain to bright sunlight",
+    "stickman feeding positive thoughts into their mind",
+    "stickman letting go of heavy weights labeled stress",
+    "stickman hugging themselves with self love",
+    "stickman drawing a map of their life journey",
+    "stickman standing at a crossroads choosing wisely",
+    "stickman meditating under a glowing moon",
+    "stickman planting a garden of good habits",
+    "stickman climbing a ladder of personal growth",
+    "stickman sharing food with someone in need",
+    "stickman dancing freely with joy",
+    "stickman holding a candle of hope in darkness",
+    "stickman building a bridge between hearts",
+    "stickman flying a kite of dreams",
+    "stickman watering flowers of friendship",
+    "stickman standing firm like a strong tree",
+    "stickman opening a book of possibilities",
+    "stickman blowing dandelion seeds of kindness",
+    "stickman holding an umbrella of protection over others",
+    "stickman skipping stones across a calm lake",
+    "stickman weaving a tapestry of their experiences",
+    "stickman standing at the start line of a race",
+    "stickman folding paper cranes of wishes",
+    "stickman lighting lamps of knowledge",
+    "stickman catching stars in a jar of dreams",
+    "stickman building a nest of comfort for themselves",
+    "stickman playing a musical instrument of joy",
+    "stickman doing yoga in a peaceful pose",
+    "stickman writing a letter of gratitude",
+    "stickman blowing bubbles of positive energy",
+    "stickman stretching toward their highest potential",
+    "stickman holding a compass of inner guidance",
+    "stickman sitting by a warm fire of contentment",
+    "stickman collecting moments of happiness in a basket",
+    "stickman painting a rainbow after the rain",
+    "stickman pushing a boulder of challenge uphill",
+    "stickman sitting quietly watching a sunrise of hope",
+    "stickman tying a knot of commitment to themselves",
+    "stickman arranging puzzle pieces of their life",
+    "stickman holding a mirror reflecting inner beauty",
+    "stickman climbing a tree of knowledge",
+    "stickman weaving a crown of self worth",
+    "stickman holding a lantern of wisdom",
+    "stickman building a tower of achievements",
+    "stickman embracing their own shadow with acceptance",
+    "stickman planting flags of victory on goals reached",
+    "stickman arranging flowers of gratitude in a vase",
+    "stickman sailing a boat of dreams on calm waters",
+]
 
 def generate_visual_prompts(story: str) -> list:
-    """Generate 8 distinct ENGLISH visual descriptions from the story using Paid Pollinations API."""
-    print(f"[scenes] Visuelle Beschreibungen auf Englisch generieren...")
+    """Generate stickman scene descriptions for self-help content."""
+    print(f"[scenes] Stickman-Szenenbeschreibungen auf Englisch generieren...")
     
     lang_name = LANGUAGE_CONFIG["name"]
     
     prompt = (
-        f"Read this {lang_name} story: '{story}'\n"
-        f"Generate exactly {NUM_IMAGES} detailed, visual image descriptions in ENGLISH based on this story. "
-        f"Describe the animals, expressions, and environment clearly. "
-        f"Make them cute and suitable for a 3D Pixar-style animation. "
-        f"Output ONLY the {NUM_IMAGES} descriptions, one per line. No numbering."
+        f"Read this {lang_name} self-help text: '{story}'\n"
+        f"Generate exactly 5 short stickman scene descriptions in ENGLISH "
+        f"that visually explain the concepts from the text. "
+        f"Each scene shows a simple stick figure on white background doing an action. "
+        f"Variety of poses: thinking, walking, growing, reaching, embracing, writing, etc. "
+        f"Output ONLY 5 descriptions, one per line. No numbering."
     )
     
     url = "https://gen.pollinations.ai/v1/chat/completions"
@@ -328,126 +419,123 @@ def generate_visual_prompts(story: str) -> list:
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            r = requests.post(url, headers=headers, json=payload, timeout=60)
+            r = requests.post(url, headers=headers, json=payload, timeout=120)
             
             if r.status_code != 200:
                  print(f"[scenes] API Error (Attempt {attempt+1}/{max_retries}): {r.status_code}")
-                 continue
-                 
+                 if attempt < max_retries - 1:
+                     time.sleep(2)
+                     continue
+                 break
+                  
             data = r.json()
             if "choices" in data:
                 text = data["choices"][0]["message"]["content"].strip()
             else:
                  text = str(data)
             
-            # Clean up lines
             lines = [line.strip().lstrip('0123456789.- ') for line in text.split('\n') if line.strip()]
             
-            # Ensure we have exactly NUM_IMAGES
-            if len(lines) < NUM_IMAGES:
-                while len(lines) < NUM_IMAGES:
-                    lines.append(lines[-1] + " close up view" if lines else "Cute animal scene")
+            if len(lines) >= NUM_IMAGES:
+                scenes = lines[:NUM_IMAGES]
+                with open(SCENES_FILE, "w", encoding="utf-8") as f:
+                    for i, scene in enumerate(scenes):
+                        f.write(f"{i+1}. {scene}\n")
+                print(f"[scenes] {len(scenes)} Szenen via API erstellt")
+                return scenes
             
-            scenes = lines[:NUM_IMAGES]
-            
-            # Save scenes
-            with open(SCENES_FILE, "w", encoding="utf-8") as f:
-                for i, scene in enumerate(scenes):
-                    f.write(f"{i+1}. {scene}\n")
-            
-            print(f"[scenes] {len(scenes)} visuelle Beschreibungen erstellt")
-            return scenes
+            print(f"[scenes] Nur {len(lines)} von {NUM_IMAGES} erhalten, verwende Fallback")
+            break
             
         except Exception as e:
-            print(f"[scenes] Fehler bei der Generierung (Versuch {attempt+1}): {e}")
+            print(f"[scenes] Fehler (Versuch {attempt+1}): {e}")
             time.sleep(2)
 
-    raise Exception(f"Failed to generate visual prompts after {max_retries} attempts.")
+    print(f"[scenes] Verwende Fallback-Szenen...")
+    scenes = [
+        "stickman meditating with peaceful thoughts around head",
+        "stickman looking in mirror seeing their best self",
+        "stickman climbing a mountain step by step",
+        "stickman holding a glowing heart in their hands",
+        "stickman planting seeds of kindness around them",
+    ]
+    with open(SCENES_FILE, "w", encoding="utf-8") as f:
+        for i, scene in enumerate(scenes):
+            f.write(f"{i+1}. {scene}\n")
+    print(f"[scenes] {len(scenes)} Fallback-Szenen gespeichert")
+    return scenes
 
 def generate_image(scene: str, idx: int) -> Path:
-    """Generate high-quality 3D animated animal image for each scene using Pollinations AI."""
-    # Create unique seed for each image based on scene content + index
+    """Generate stickman image using Pollinations.ai GET endpoint with API key."""
     seed = hash(scene + str(idx)) % 1000000
     
-    # Improved prompt with full negative prompts from French version
     prompt = (
-        f"Professional 3D Pixar Disney animation style, ultra high quality 8K render, {scene}, "
-        f"perfect symmetrical faces, flawless facial features, anatomically correct proportions, "
-        f"cute adorable animal characters with correct anatomy, "
-        f"professional character design, crystal clear details, "
-        f"vibrant colorful children's book illustration, cinematic lighting, "
-        f"magical forest atmosphere, child-friendly, happy joyful expression, "
-        f"masterpiece quality, sharp focus, beautiful composition, "
-        f"NEGATIVE PROMPT: deformed, disfigured, ugly, bad anatomy, "
-        f"extra limbs, missing limbs, floating limbs, disconnected limbs, "
-        f"mutated hands, poorly drawn hands, malformed hands, "
-        f"poorly drawn face, mutation, deformed face, asymmetric face, "
-        f"blurry, bad proportions, extra fingers, fused fingers, "
-        f"too many fingers, cloned face, duplicate features, "
-        f"disfigured, gross proportions, malformed limbs, "
-        f"extra arms, extra legs, missing arms, missing legs, "
-        f"deformed eyes, cross-eyed, misaligned eyes, extra eyes, "
-        f"deformed mouth, extra mouth, bad teeth, "
-        f"low quality, worst quality, low resolution, distorted"
+        f"Simple stick figure drawing on pure white background, minimal line art, "
+        f"black thin lines, no shading, clean simple illustration, {scene}, "
+        f"whiteboard animation style, no colors except white and black, "
+        f"clear simple shapes, minimalist, flat design"
     )
     safe_prompt = quote(prompt)
     
-    # URL construction matching French version
+    negative = quote(
+        "deformed, disfigured, ugly, bad anatomy, extra limbs, "
+        "blurry, bad proportions, low quality, low resolution, "
+        "photograph, realistic, 3d, painting, colorful, "
+        "landscape, nature, city, room, interior, outdoor"
+    )
+    
     url = (
         f"https://gen.pollinations.ai/image/{safe_prompt}"
         f"?width={IMAGE_WIDTH}&height={IMAGE_HEIGHT}&model={IMAGE_MODEL}&seed={seed}&nologo=true"
+        f"&negative_prompt={negative}"
     )
     
-    print(f"[image] 3D-Bild generieren {idx+1}/{NUM_IMAGES}: {scene[:50]}...")
+    print(f"[image] Stickman generieren {idx+1}/{NUM_IMAGES}: {scene[:40]}...")
     
-    headers = {
-        "Authorization": f"Bearer {POLLINATIONS_API_KEY}"
-    }
-
+    headers = {"Authorization": f"Bearer {POLLINATIONS_API_KEY}"}
     out = IMAGES_DIR / f"scene_{idx:02d}.jpg"
-
-    # Retry logic with exponential backoff
-    max_retries = 5
-    for attempt in range(max_retries):
+    
+    for attempt in range(3):
         try:
-            # Note: params are now in URL, so we don't pass them here
             r = requests.get(url, headers=headers, timeout=180)
+            if r.status_code == 402:
+                print(f"[image] Guthaben aufgebraucht")
+                break
             r.raise_for_status()
+            if len(r.content) < 1000:
+                raise ValueError("Image too small")
             out.write_bytes(r.content)
-            time.sleep(2)  # Small delay between successful requests
+            print(f"[image] ✅ Bild {idx+1}: {len(r.content)//1024}KB")
+            time.sleep(2)
             return out
         except requests.exceptions.HTTPError as e:
-            # Handle 429 rate limits with much longer waits
-            if e.response.status_code == 429:
-                wait_time = (attempt + 1) * 20
-                if attempt < max_retries - 1:
-                    print(f"[image] Rate-Limit erreicht! Wiederholung {attempt+1}/{max_retries} (warte {wait_time}s)")
-                    time.sleep(wait_time)
-                else:
-                    print(f"[image] Bild {idx+1} konnte nicht generiert werden: Rate-Limit überschritten")
-                    raise e
-            else:
-                wait_time = (attempt + 1) * 5
-                if attempt < max_retries - 1:
-                    print(f"[image] HTTP {e.response.status_code}. Wiederholung {attempt+1}/{max_retries} (warte {wait_time}s)")
-                    time.sleep(wait_time)
-                else:
-                    print(f"[image] Bild {idx+1} konnte nicht generiert werden: {e}")
-                    raise e
+            if e.response.status_code == 402:
+                break
+            if attempt < 2:
+                time.sleep((attempt + 1) * 5)
         except Exception as e:
-            wait_time = (attempt + 1) * 5
-            if attempt < max_retries - 1:
-                print(f"[image] Wiederholung {attempt+1}/{max_retries} (warte {wait_time}s)")
-                time.sleep(wait_time)
+            if attempt < 2:
+                time.sleep((attempt + 1) * 5)
             else:
-                print(f"[image] Bild {idx+1} konnte nicht generiert werden: {e}")
-                raise e
-    return out
+                break
+    
+    raise Exception(f"Bild {idx+1} konnte nicht generiert werden (Guthaben prüfen)")
 
 def generate_images(scenes: list):
-    """Generate unique 3D animated images for each scene SEQUENTIALLY (avoids rate limits)"""
-    print(f"[image] {NUM_IMAGES} 3D-Bilder sequenziell generieren (Rate-Limits vermeiden)...")
-    return [generate_image(scene, i) for i, scene in enumerate(scenes)]
+    """Generate images for each scene, skip failures gracefully."""
+    print(f"[image] {NUM_IMAGES} Bilder sequenziell generieren...")
+    images = []
+    for i, scene in enumerate(scenes):
+        try:
+            img = generate_image(scene, i)
+            images.append(img)
+        except Exception as e:
+            print(f"[image] ⚠️ Bild {i+1} übersprungen: {e}")
+            if images:
+                images.append(images[-1])
+    if not images:
+        raise Exception("Keine Bilder konnten generiert werden!")
+    return images
 
 def generate_tts(story: str):
     """Generate narration using edge-tts (free Microsoft TTS)."""
@@ -545,14 +633,14 @@ def generate_word_subtitles():
     
     font_name = LANGUAGE_CONFIG.get("subtitle_font", "Arial")
     
-    # Create ASS subtitle file with kid-friendly styling
+    # Create ASS subtitle file - small, dark text for white background
     ass_content = f"""[Script Info]
-Title: Kindergeschichte
+Title: Selbsthilfe
 ScriptType: v4.00+
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font_name},20,&H00FFFF00,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,3,2,5,10,10,60,1
+Style: Default,{font_name},11,&H00333333,&H00000000,&H00000000,&H80FFFFFF,0,0,0,0,100,100,0,0,1,1,0,2,10,10,40,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -729,36 +817,9 @@ def main():
     
     # Diagnostic logging
     print("=" * 60)
-    print("=== SYSTEM STATUS CHECK ===")
+    print("=== SELBSTHILFE VIDEO GENERATOR ===")
     print("=" * 60)
     
-    # Check topics.txt status
-    if os.path.exists(TOPICS_FILE):
-        try:
-            with open(TOPICS_FILE, "r", encoding="utf-8") as f:
-                current_topics = [line.strip() for line in f if line.strip()]
-            print(f"[status] 📚 Topics verfügbar: {len(current_topics)}")
-            if current_topics:
-                print(f"[status] 🔝 Nächstes Thema: '{current_topics[0]}'")
-        except Exception as e:
-            print(f"[status] ❌ Fehler beim Lesen von topics.txt: {e}")
-    else:
-        print(f"[status] ⚠️  topics.txt existiert nicht")
-    
-    # Check used_topics.txt status
-    if os.path.exists("used_topics.txt"):
-        try:
-            with open("used_topics.txt", "r", encoding="utf-8") as f:
-                used = f.readlines()
-            print(f"[status] 📝 Verwendete Themen: {len(used)}")
-            if used:
-                print(f"[status] 🕒 Letztes verwendetes Thema: {used[-1].strip()}")
-        except Exception as e:
-            print(f"[status] ❌ Fehler beim Lesen von used_topics.txt: {e}")
-    else:
-        print(f"[status] ℹ️  used_topics.txt existiert noch nicht")
-    
-    # Check cleanup status
     image_count = len(list(IMAGES_DIR.glob("*.jpg")))
     output_count = len([f for f in OUTPUT_DIR.glob("*") if f.is_file() and f.name != ".gitkeep"])
     print(f"[status] 🖼️  Alte Bilder bereinigt: {image_count} verbleibend (sollte 0 sein)")
@@ -769,29 +830,30 @@ def main():
 
     try:
     
-    # Check if topics.txt exists and try to read from it
-        # Check if topics.txt exists and try to read from it
-        if os.path.exists(TOPICS_FILE):
-            try:
-                with open(TOPICS_FILE, "r", encoding="utf-8") as f:
-                    # Read lines and filter empty ones
-                    lines = [line.strip() for line in f if line.strip()]
-                    if not lines:
-                        # File exists but is empty
-                        print(f"[topics] ⚠️ {TOPICS_FILE} ist leer. Generiere neue Themen...")
-                        from generate_topics import generate_german_kids_topics, save_topics_to_file
-                        new_topics = generate_german_kids_topics(500)
-                        save_topics_to_file(new_topics)
-            except Exception as e:
-                print(f"[topics] ❌ Fehler beim Lesen von {TOPICS_FILE}: {e}")
-        else:
-             # File doesn't exist
-            print(f"[topics] ⚠️ {TOPICS_FILE} nicht gefunden! Generiere 500 initiale Themen...")
-            from generate_topics import generate_german_kids_topics, save_topics_to_file
-            new_topics = generate_german_kids_topics(500)
-            save_topics_to_file(new_topics)
-
-        topic = choose_topic_for_today()
+        self_help_themes = [
+            "Selbstliebe im Alltag",
+            "Warum du dich nicht vergleichen solltest",
+            "Die Kraft der kleinen Schritte",
+            "Lerne, Nein zu sagen",
+            "Perfektionismus loslassen",
+            "Grenzen setzen ist Selbstfürsorge",
+            "Deine Gedanken formen deine Realität",
+            "Vertraue deiner Intuition",
+            "Umgang mit negativen Gefühlen",
+            "Mehr Achtsamkeit im Alltag",
+            "Warum Pausen wichtig sind",
+            "Selbstvertrauen aufbauen",
+            "Die Kunst der Vergebung",
+            "Dankbarkeit als Lebensweise",
+            "Wer du wirklich bist",
+            "Mut zur Verletzlichkeit",
+            "Loslassen was dir nicht dient",
+            "Deine innere Stimme hören",
+            "Freundschaft mit dir selbst",
+            "Wachstum beginnt an der Komfortzone"
+        ]
+        topic = random.choice(self_help_themes)
+        print(f"[topics] 🎯 Selbsthilfe-Thema: '{topic}'")
         print("=" * 60)
         print(f"=== Topic: {topic}")
         print("=" * 60)
