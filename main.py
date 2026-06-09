@@ -43,8 +43,6 @@ IMAGE_MODEL = "zimage"
 
 STORY_MAX_WORDS = 300
 
-TOPICS_FILE = "topics.txt"
-
 IMAGES_DIR = Path("images")
 OUTPUT_DIR = Path("output")
 AUDIO_DIR = Path("audio")
@@ -84,145 +82,7 @@ def ensure_dirs():
             except Exception:
                 pass
 
-def get_all_used_topics():
-    """Get all previously used topics to prevent duplicates."""
-    used = set()
-    if os.path.exists("used_topics.txt"):
-        with open("used_topics.txt", "r", encoding="utf-8") as f:
-            for line in f:
-                # Extract topic from "YYYY-MM-DD: Topic" format
-                if ": " in line:
-                    topic = line.split(": ", 1)[1].strip()
-                    used.add(topic.lower())
-                else:
-                    used.add(line.strip().lower())
-    return used
 
-def choose_topic_for_today():
-    """Select and consume a topic. Auto-generates new unique topics when running low."""
-    # Check if we need to generate initial topics
-    if not os.path.exists(TOPICS_FILE):
-        print(f"[topics] {TOPICS_FILE} nicht gefunden! Generiere 500 initiale Themen...")
-        from generate_topics import generate_german_kids_topics, save_topics_to_file
-        new_topics = generate_german_kids_topics(500)
-        save_topics_to_file(new_topics)
-    
-    # Read topics with error handling
-    try:
-        with open(TOPICS_FILE, "r", encoding="utf-8") as f:
-            topics = [line.strip() for line in f if line.strip()]
-        print(f"[topics] 📚 Geladene Themen: {len(topics)}")
-    except Exception as e:
-        print(f"[topics] ❌ FEHLER beim Lesen von {TOPICS_FILE}: {e}")
-        return "Der kleine Bär im Wald"
-    
-    # If running low on topics (< 50), generate more with strict duplicate checking
-    if len(topics) < 50:
-        print(f"[topics] ⚠️  Nur noch {len(topics)} Themen übrig. Generiere 200 neue EINZIGARTIGE Themen...")
-        from generate_topics import generate_german_kids_topics
-        
-        # Get all used topics to prevent duplicates
-        used_topics = get_all_used_topics()
-        existing_topics_lower = set(t.lower() for t in topics)
-        all_existing = used_topics.union(existing_topics_lower)
-        
-        print(f"[topics] Bereits verwendet/vorhanden: {len(all_existing)} Themen")
-        
-        # Generate new topics and filter out duplicates
-        attempts = 0
-        new_unique_topics = []
-        while len(new_unique_topics) < 200 and attempts < 5:
-            batch = generate_german_kids_topics(250)  # Generate extra to account for duplicates
-            for topic in batch:
-                if topic.lower() not in all_existing:
-                    new_unique_topics.append(topic)
-                    all_existing.add(topic.lower())
-                    if len(new_unique_topics) >= 200:
-                        break
-            attempts += 1
-            if len(new_unique_topics) < 200:
-                print(f"[topics] Versuch {attempts}: {len(new_unique_topics)} einzigartige Themen gefunden, generiere mehr...")
-        
-        print(f"[topics] ✅ {len(new_unique_topics)} EINZIGARTIGE neue Themen generiert (0 Duplikate)")
-        
-        # Add new topics to the end of existing ones
-        topics.extend(new_unique_topics)
-        try:
-            with open(TOPICS_FILE, "w", encoding="utf-8") as f:
-                f.write("\n".join(topics) + "\n")
-                f.flush()
-                os.fsync(f.fileno())
-            print(f"[topics] Jetzt {len(topics)} Themen verfügbar")
-        except Exception as e:
-            print(f"[topics] ❌ FEHLER beim Speichern neuer Themen: {e}")
-    
-    if not topics:
-        print("[topics] ❌ Keine Themen verfügbar! Verwende Fallback.")
-        return "Der kleine Bär im Wald"
-    
-    # Select the first topic and remove it from the list
-    selected_topic = topics[0]
-    remaining_topics = topics[1:]
-    
-    print(f"[topics] 🎯 Ausgewähltes Thema: '{selected_topic}'")
-    print(f"[topics] 📊 Vor Entfernung: {len(topics)} Themen")
-    print(f"[topics] 📊 Nach Entfernung: {len(remaining_topics)} Themen")
-    
-    # Save remaining topics back to file with atomic operation and verification
-    max_retries = 3
-    write_success = False
-    
-    for attempt in range(max_retries):
-        try:
-            # Write with flush and fsync for atomic operation
-            with open(TOPICS_FILE, "w", encoding="utf-8") as f:
-                f.write("\n".join(remaining_topics) + "\n")
-                f.flush()
-                os.fsync(f.fileno())
-            
-            # Verify the write was successful by reading back
-            with open(TOPICS_FILE, "r", encoding="utf-8") as f:
-                verification = [line.strip() for line in f if line.strip()]
-            
-            # Check that the selected topic is NOT in the file anymore
-            if selected_topic in verification:
-                print(f"[topics] ⚠️  WARNUNG: Thema wurde nicht entfernt! Versuch {attempt + 1}/{max_retries}")
-                time.sleep(0.5)  # Brief delay before retry
-                continue
-            
-            # Check that we have the expected number of topics
-            if len(verification) != len(remaining_topics):
-                print(f"[topics] ⚠️  WARNUNG: Themenanzahl stimmt nicht überein! Erwartet: {len(remaining_topics)}, Gefunden: {len(verification)}")
-                print(f"[topics] Versuch {attempt + 1}/{max_retries}")
-                time.sleep(0.5)
-                continue
-            
-            # Success!
-            print(f"[topics] ✅ Thema erfolgreich entfernt und verifiziert")
-            print(f"[topics] ✅ Verbleibende Themen: {len(verification)}")
-            write_success = True
-            break
-            
-        except Exception as e:
-            print(f"[topics] ❌ FEHLER beim Speichern (Versuch {attempt + 1}/{max_retries}): {e}")
-            time.sleep(0.5)
-    
-    if not write_success:
-        print(f"[topics] ❌ KRITISCHER FEHLER: Konnte Thema nicht aus {TOPICS_FILE} entfernen!")
-        print(f"[topics] ⚠️  Das gleiche Thema könnte beim nächsten Mal erneut ausgewählt werden!")
-    
-    # Log to used topics history with error handling
-    try:
-        today = datetime.datetime.now()
-        with open("used_topics.txt", "a", encoding="utf-8") as f:
-            f.write(f"{today.strftime('%Y-%m-%d')}: {selected_topic}\n")
-            f.flush()
-            os.fsync(f.fileno())
-        print(f"[topics] ✅ Thema protokolliert in used_topics.txt")
-    except Exception as e:
-        print(f"[topics] ⚠️  WARNUNG: Konnte Thema nicht in used_topics.txt protokollieren: {e}")
-    
-    return selected_topic
 
 def generate_topic() -> str:
     """Generate a random self-help topic using AI."""
@@ -232,7 +92,7 @@ def generate_topic() -> str:
         "model": "openai",
         "messages": [
             {"role": "system", "content": "Du gibst NUR das Thema aus, nichts sonst."},
-            {"role": "user", "content": "Generiere ein kurzes, einprägsames Selbsthilfe-Thema auf Deutsch für eine erwachsene Frau (18+). Zum Beispiel: 'Selbstliebe im Alltag' oder 'Die Kraft der kleinen Schritte'. NUR das Thema, keine Erklärung, kein Zusatztext."}
+            {"role": "user", "content": "Generiere ein kurzes, einprägsames Thema aus Selbsthilfe und Positiver Psychologie auf Deutsch. Für alle geeignet. Zum Beispiel: 'Selbstliebe im Alltag' oder 'Die Kraft der kleinen Schritte'. NUR das Thema, keine Erklärung, kein Zusatztext."}
         ]
     }
     for attempt in range(3):
@@ -257,10 +117,11 @@ def generate_story_with_pollinations(topic: str) -> str:
         "Deine Worte sind warm, ermutigend und weise."
     )
     full_prompt = (
-        f"Schreibe eine kurze, einfühlsame Selbsthilfe-Reflexion auf {lang_name} "
+        f"Schreibe eine kurze, einfühlsame Selbsthilfe- und Positive-Psychologie-Reflexion auf {lang_name} "
         f"zum Thema: {topic}. "
-        f"Sprich eine erwachsene Frau (18+) direkt an. "
+        f"Wende dich direkt an die Leserin oder den Leser. "
         f"Sei warmherzig, psychologisch fundiert und motivierend. "
+        f"Integriere Prinzipien aus positiver Psychologie, Achtsamkeit und Selbstmitgefühl. "
         f"Gib konkrete, alltagstaugliche Einsichten. "
         f"Länge: 80-120 Wörter. Kein Titel. Nur der Inhalt."
     )
@@ -892,6 +753,16 @@ def main():
         print("=" * 60)
         print(f"=== Topic: {topic}")
         print("=" * 60)
+        
+        # Log topic to used_topics.txt so the monitoring system sees rotation
+        try:
+            today = datetime.datetime.now()
+            with open("used_topics.txt", "a", encoding="utf-8") as f:
+                f.write(f"{today.strftime('%Y-%m-%d')}: {topic}\n")
+                f.flush()
+            print(f"[topics] ✅ Thema protokolliert in used_topics.txt")
+        except Exception as e:
+            print(f"[topics] ⚠️ Konnte Thema nicht protokollieren: {e}")
 
         # 1. Generate story with Pollinations AI
         story = generate_story_with_pollinations(topic)
