@@ -36,10 +36,10 @@ LANGUAGE_CONFIG = {
 #     ...
 # }
 
-NUM_IMAGES = 5
+NUM_IMAGES = 8
 IMAGE_WIDTH = 1080
 IMAGE_HEIGHT = 1920
-IMAGE_MODEL = "flux"
+IMAGE_MODEL = "zimage"
 
 STORY_MAX_WORDS = 300
 
@@ -224,6 +224,29 @@ def choose_topic_for_today():
     
     return selected_topic
 
+def generate_topic() -> str:
+    """Generate a random self-help topic using AI."""
+    url = "https://gen.pollinations.ai/v1/chat/completions"
+    headers = {"Authorization": f"Bearer {POLLINATIONS_API_KEY}", "Content-Type": "application/json"}
+    payload = {
+        "model": "openai",
+        "messages": [
+            {"role": "system", "content": "Du gibst NUR das Thema aus, nichts sonst."},
+            {"role": "user", "content": "Generiere ein kurzes, einprägsames Selbsthilfe-Thema auf Deutsch für eine erwachsene Frau (18+). Zum Beispiel: 'Selbstliebe im Alltag' oder 'Die Kraft der kleinen Schritte'. NUR das Thema, keine Erklärung, kein Zusatztext."}
+        ]
+    }
+    for attempt in range(3):
+        try:
+            r = requests.post(url, headers=headers, json=payload, timeout=30)
+            if r.status_code == 200:
+                topic = r.json()["choices"][0]["message"]["content"].strip().strip('"').strip("'")
+                if topic:
+                    return topic
+        except Exception as e:
+            print(f"[topic] Fehler: {e}")
+            time.sleep(2)
+    return "Selbstvertrauen aufbauen"
+
 def generate_story_with_pollinations(topic: str) -> str:
     """Generate a self-help / psychological reflection in German for women 18+."""
     
@@ -389,18 +412,22 @@ FALLBACK_SCENES = [
 ]
 
 def generate_visual_prompts(story: str) -> list:
-    """Generate stickman scene descriptions for self-help content."""
-    print(f"[scenes] Stickman-Szenenbeschreibungen auf Englisch generieren...")
+    """Generate beautiful scene descriptions for self-help content."""
+    print(f"[scenes] Szenenbeschreibungen auf Englisch generieren...")
     
     lang_name = LANGUAGE_CONFIG["name"]
     
     prompt = (
         f"Read this {lang_name} self-help text: '{story}'\n"
-        f"Generate exactly 5 short stickman scene descriptions in ENGLISH "
+        f"Generate exactly {NUM_IMAGES} stickman scene descriptions in ENGLISH "
         f"that visually explain the concepts from the text. "
-        f"Each scene shows a simple stick figure on white background doing an action. "
-        f"Variety of poses: thinking, walking, growing, reaching, embracing, writing, etc. "
-        f"Output ONLY 5 descriptions, one per line. No numbering."
+        f"Each scene shows a CLEAN, WELL-DRAWN stick figure on a soft pastel background doing an action. "
+        f"Make the descriptions vivid and specific about the pose and action. "
+        f"Variety of poses: meditating, climbing, watering a plant, embracing, writing in a journal, "
+        f"releasing a balloon, standing tall, walking through a door. "
+        f"Example: 'Stickman meditating peacefully with glowing thoughts above head, soft blue background' "
+        f"or 'Stickman climbing steps toward a shining star, warm sunset colors behind' "
+        f"Output ONLY {NUM_IMAGES} descriptions, one per line. No numbering."
     )
     
     url = "https://gen.pollinations.ai/v1/chat/completions"
@@ -453,11 +480,14 @@ def generate_visual_prompts(story: str) -> list:
 
     print(f"[scenes] Verwende Fallback-Szenen...")
     scenes = [
-        "stickman meditating with peaceful thoughts around head",
-        "stickman looking in mirror seeing their best self",
-        "stickman climbing a mountain step by step",
-        "stickman holding a glowing heart in their hands",
-        "stickman planting seeds of kindness around them",
+        "Stickman meditating with glowing peaceful thoughts above head, soft blue background",
+        "Stickman looking in a mirror seeing their best self reflected, warm pink background",
+        "Stickman climbing steps toward a shining star, sunset gradient background",
+        "Stickman watering a small plant growing from the ground, soft green background",
+        "Stickman releasing a balloon labeled fear into the sky, lavender background",
+        "Stickman writing goals in a journal at a desk, cozy warm background",
+        "Stickman walking through an open door into bright light, golden background",
+        "Stickman standing tall with arms open wide, soft teal background",
     ]
     with open(SCENES_FILE, "w", encoding="utf-8") as f:
         for i, scene in enumerate(scenes):
@@ -466,73 +496,100 @@ def generate_visual_prompts(story: str) -> list:
     return scenes
 
 def generate_image(scene: str, idx: int) -> Path:
-    """Generate stickman image using Pollinations.ai GET endpoint with API key."""
+    """Generate stickman image using Pollinations.ai with paid API key."""
     seed = hash(scene + str(idx)) % 1000000
     
     prompt = (
-        f"Simple stick figure drawing on pure white background, minimal line art, "
-        f"black thin lines, no shading, clean simple illustration, {scene}, "
-        f"whiteboard animation style, no colors except white and black, "
-        f"clear simple shapes, minimalist, flat design"
+        f"Aesthetic clean stick figure illustration, minimalist vector art style, "
+        f"well-proportioned stickman on soft gradient pastel background, {scene}, "
+        f"polished flat design, smooth thin black lines, beautiful minimalist artwork, "
+        f"elegant simple composition, soft calming pastel colors, professional quality"
     )
     safe_prompt = quote(prompt)
     
     negative = quote(
         "deformed, disfigured, ugly, bad anatomy, extra limbs, "
         "blurry, bad proportions, low quality, low resolution, "
-        "photograph, realistic, 3d, painting, colorful, "
-        "landscape, nature, city, room, interior, outdoor"
+        "photorealistic, 3d render, photograph, hyperrealistic, "
+        "cluttered, messy, chaotic, complex background, graffiti, "
+        "scribble, hand-drawn, sketchy, rough, stick figure, "
+        "crude, childish, amateur, pixelated"
     )
     
     url = (
         f"https://gen.pollinations.ai/image/{safe_prompt}"
-        f"?width={IMAGE_WIDTH}&height={IMAGE_HEIGHT}&model={IMAGE_MODEL}&seed={seed}&nologo=true"
+        f"?model={IMAGE_MODEL}&seed={seed}&nologo=true"
+        f"&width={IMAGE_WIDTH}&height={IMAGE_HEIGHT}"
         f"&negative_prompt={negative}"
     )
-    
-    print(f"[image] Stickman generieren {idx+1}/{NUM_IMAGES}: {scene[:40]}...")
     
     headers = {"Authorization": f"Bearer {POLLINATIONS_API_KEY}"}
     out = IMAGES_DIR / f"scene_{idx:02d}.jpg"
     
-    for attempt in range(3):
+    print(f"[image] Bild {idx+1}/{NUM_IMAGES} generieren (API): {scene[:45]}...")
+    
+    for attempt in range(5):
         try:
             r = requests.get(url, headers=headers, timeout=180)
             if r.status_code == 402:
-                print(f"[image] Guthaben aufgebraucht")
-                break
+                print(f"[image] 402 - warte 30s und wiederhole...")
+                time.sleep(30)
+                continue
             r.raise_for_status()
             if len(r.content) < 1000:
                 raise ValueError("Image too small")
             out.write_bytes(r.content)
             print(f"[image] ✅ Bild {idx+1}: {len(r.content)//1024}KB")
-            time.sleep(2)
+            time.sleep(3)
             return out
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 402:
-                break
-            if attempt < 2:
-                time.sleep((attempt + 1) * 5)
+                print(f"[image] 402 - warte 30s und wiederhole...")
+                time.sleep(30)
+                continue
+            if attempt < 4:
+                time.sleep((attempt + 1) * 10)
         except Exception as e:
-            if attempt < 2:
-                time.sleep((attempt + 1) * 5)
+            if attempt < 4:
+                time.sleep((attempt + 1) * 10)
             else:
                 break
     
-    raise Exception(f"Bild {idx+1} konnte nicht generiert werden (Guthaben prüfen)")
+    raise Exception(f"Bild {idx+1} konnte nicht generiert werden (API Error)")
 
 def generate_images(scenes: list):
-    """Generate images for each scene, skip failures gracefully."""
-    print(f"[image] {NUM_IMAGES} Bilder sequenziell generieren...")
+    """Generate stickman images using Pollinations.ai API."""
+    print(f"[image] {NUM_IMAGES} Stickman-Bilder via Pollinations API...")
     images = []
     for i, scene in enumerate(scenes):
         try:
             img = generate_image(scene, i)
             images.append(img)
         except Exception as e:
-            print(f"[image] ⚠️ Bild {i+1} übersprungen: {e}")
-            if images:
-                images.append(images[-1])
+            print(f"[image] ⚠️ Bild {i+1} fehlgeschlagen: {e}")
+            from PIL import Image, ImageDraw, ImageFont, ImageFilter
+            placeholder = IMAGES_DIR / f"scene_{i:02d}.jpg"
+            img = Image.new('RGB', (IMAGE_WIDTH, IMAGE_HEIGHT), (255, 255, 255))
+            draw = ImageDraw.Draw(img)
+            palettes = [(210, 230, 255), (255, 220, 230), (220, 255, 220), (255, 230, 200), (230, 220, 255), (255, 240, 210), (210, 240, 240), (240, 220, 240)]
+            r1, g1, b1 = palettes[i % 8]
+            r2 = min(r1 + 60, 255); g2 = min(g1 + 50, 255); b2 = min(b1 + 40, 255)
+            for y in range(IMAGE_HEIGHT):
+                t = y / IMAGE_HEIGHT
+                r = int(r1 + (r2 - r1) * t)
+                g = int(g1 + (g2 - g1) * t)
+                b = int(b1 + (b2 - b1) * t)
+                draw.line([(0, y), (IMAGE_WIDTH, y)], fill=(r, g, b))
+            img = img.filter(ImageFilter.GaussianBlur(radius=5))
+            draw = ImageDraw.Draw(img)
+            try:
+                font = ImageFont.truetype("arial.ttf", 48)
+            except Exception:
+                font = ImageFont.load_default()
+            draw.text((IMAGE_WIDTH//2 - 250, IMAGE_HEIGHT//2 - 30), f"Scene {i+1}", fill=(80, 60, 120), font=font)
+            img.save(str(placeholder), 'JPEG', quality=90)
+            images.append(placeholder)
+            print(f"[image] Platzhalter {i+1} erstellt")
     if not images:
         raise Exception("Keine Bilder konnten generiert werden!")
     return images
@@ -633,14 +690,14 @@ def generate_word_subtitles():
     
     font_name = LANGUAGE_CONFIG.get("subtitle_font", "Arial")
     
-    # Create ASS subtitle file - small, dark text for white background
+    # Create ASS subtitle file - white bold text with thick black outline for visibility on any background
     ass_content = f"""[Script Info]
 Title: Selbsthilfe
 ScriptType: v4.00+
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font_name},11,&H00333333,&H00000000,&H00000000,&H80FFFFFF,0,0,0,0,100,100,0,0,1,1,0,2,10,10,40,1
+Style: Default,{font_name},13,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,3,0,2,10,10,80,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -830,29 +887,7 @@ def main():
 
     try:
     
-        self_help_themes = [
-            "Selbstliebe im Alltag",
-            "Warum du dich nicht vergleichen solltest",
-            "Die Kraft der kleinen Schritte",
-            "Lerne, Nein zu sagen",
-            "Perfektionismus loslassen",
-            "Grenzen setzen ist Selbstfürsorge",
-            "Deine Gedanken formen deine Realität",
-            "Vertraue deiner Intuition",
-            "Umgang mit negativen Gefühlen",
-            "Mehr Achtsamkeit im Alltag",
-            "Warum Pausen wichtig sind",
-            "Selbstvertrauen aufbauen",
-            "Die Kunst der Vergebung",
-            "Dankbarkeit als Lebensweise",
-            "Wer du wirklich bist",
-            "Mut zur Verletzlichkeit",
-            "Loslassen was dir nicht dient",
-            "Deine innere Stimme hören",
-            "Freundschaft mit dir selbst",
-            "Wachstum beginnt an der Komfortzone"
-        ]
-        topic = random.choice(self_help_themes)
+        topic = generate_topic()
         print(f"[topics] 🎯 Selbsthilfe-Thema: '{topic}'")
         print("=" * 60)
         print(f"=== Topic: {topic}")
