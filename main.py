@@ -90,9 +90,11 @@ def generate_topic() -> str:
     headers = {"Authorization": f"Bearer {POLLINATIONS_API_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": "openai",
+        "temperature": 1.5,
+        "seed": random.randint(1, 999999),
         "messages": [
             {"role": "system", "content": "Du gibst NUR das Thema aus, nichts sonst."},
-            {"role": "user", "content": "Generiere ein kurzes, einprägsames Thema aus Selbsthilfe und Positiver Psychologie auf Deutsch. Für alle geeignet. Zum Beispiel: 'Selbstliebe im Alltag' oder 'Die Kraft der kleinen Schritte'. NUR das Thema, keine Erklärung, kein Zusatztext."}
+            {"role": "user", "content": "Generiere ein kurzes, einprägsames Thema aus Selbsthilfe und Positiver Psychologie auf Deutsch. Sei kreativ und abwechslungsreich. Für alle geeignet. Zum Beispiel: 'Selbstliebe im Alltag' oder 'Die Kraft der kleinen Schritte'. NUR das Thema, keine Erklärung, kein Zusatztext."}
         ]
     }
     for attempt in range(3):
@@ -135,6 +137,7 @@ def generate_story_with_pollinations(topic: str) -> str:
     }
     payload = {
         "model": "openai",
+        "temperature": 1.3,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": full_prompt}
