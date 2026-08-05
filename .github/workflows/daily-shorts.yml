@@ -54,6 +54,8 @@ jobs:
     - name: Generate daily short video
       env:
         POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+        GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+        GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
         PYTHONHTTPSVERIFY: "0"
       run: |
         python main.py
@@ -120,7 +122,7 @@ jobs:
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         
-        git add topics.txt used_topics.txt
+        git add topics.txt used_topics.txt used_images.json
         
         if git diff --staged --quiet; then
           echo "⚠️ No changes to commit - topic files were not modified!"

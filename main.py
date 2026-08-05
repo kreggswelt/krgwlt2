@@ -361,108 +361,84 @@ def generate_visual_prompts(story: str) -> list:
     print(f"[scenes] {len(scenes)} Fallback-Szenen gespeichert")
     return scenes
 
-def generate_image(scene: str, idx: int, topic: str = "") -> Path:
-    """Generate stickman image using Pollinations.ai with paid API key."""
-    seed = random.randint(1, 999999)
-    
-    prompt = (
-        f"Aesthetic clean stick figure illustration, {scene}, "
-        f"minimalist vector art, well-proportioned stickman on soft pastel background, "
-        f"polished flat design, smooth thin black lines, simple beautiful composition. "
-        f"There are no text, no letters, no words, no labels anywhere in this image."
-    )
-    safe_prompt = quote(prompt)
-    
-    negative = quote(
-        "deformed, disfigured, ugly, bad anatomy, extra limbs, "
-        "blurry, bad proportions, low quality, low resolution, "
-        "photorealistic, 3d render, photograph, hyperrealistic, "
-        "cluttered, messy, chaotic, complex background, graffiti, "
-        "scribble, hand-drawn, sketchy, rough, crude, childish, "
-        "amateur, pixelated, realistic face, detailed eyes, shading, "
-        "text, letters, words, characters, typography, labels, captions, "
-        "written text, alphabet, numbers, symbols, "
-        "sign, signage, banner, poster, book text, newspaper, document"
-    )
-    
-    url = (
-        f"https://gen.pollinations.ai/image/{safe_prompt}"
-        f"?model={IMAGE_MODEL}&seed={seed}&nologo=true"
-        f"&width={IMAGE_WIDTH}&height={IMAGE_HEIGHT}"
-        f"&enhance=false"
-        f"&negative_prompt={negative}"
-    )
-    
-    headers = {"Authorization": f"Bearer {POLLINATIONS_API_KEY}"}
+def download_image_from_drive(idx: int) -> Path:
+    """Pick a random stickman image from Google Drive folder (weighted by least-used)."""
+    import json
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+
     out = IMAGES_DIR / f"scene_{idx:02d}.jpg"
-    
-    print(f"[image] Bild {idx+1}/{NUM_IMAGES} generieren (API): {scene[:45]}...")
-    
-    for attempt in range(5):
+
+    service_key = os.environ.get("GOOGLE_SERVICE_ACCOUNT_KEY")
+    folder_id = os.environ.get(
+        "GOOGLE_DRIVE_FOLDER_ID",
+        "1E9NZSg5Ef-bcRIwMVcrJ-KsrmG0R1Zgv",
+    ).strip().strip('"').strip("'")
+    if not service_key:
+        raise ValueError("GOOGLE_SERVICE_ACCOUNT_KEY environment variable required")
+    if not folder_id:
+        raise ValueError("GOOGLE_DRIVE_FOLDER_ID environment variable required")
+
+    cred = service_account.Credentials.from_service_account_info(
+        json.loads(service_key), scopes=["https://www.googleapis.com/auth/drive.readonly"]
+    )
+    service = build("drive", "v3", credentials=cred)
+
+    all_files = []
+    page_token = None
+    while True:
+        r = service.files().list(
+            q=f"'{folder_id}' in parents and mimeType contains 'image/'",
+            fields="files(id, name)", pageSize=200, pageToken=page_token
+        ).execute()
+        all_files.extend(r.get("files", []))
+        page_token = r.get("nextPageToken")
+        if not page_token:
+            break
+
+    if not all_files:
+        raise RuntimeError(f"No image files found in Google Drive folder: {folder_id}")
+
+    used_log = Path("used_images.json")
+    usage = {}
+    if used_log.exists():
         try:
-            r = requests.get(url, headers=headers, timeout=180)
-            if r.status_code == 402:
-                print(f"[image] 402 - warte 30s und wiederhole...")
-                time.sleep(30)
-                continue
-            r.raise_for_status()
-            if len(r.content) < 1000:
-                raise ValueError("Image too small")
-            out.write_bytes(r.content)
-            print(f"[image] ✅ Bild {idx+1}: {len(r.content)//1024}KB")
-            time.sleep(3)
-            return out
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 402:
-                print(f"[image] 402 - warte 30s und wiederhole...")
-                time.sleep(30)
-                continue
-            if attempt < 4:
-                time.sleep((attempt + 1) * 10)
-        except Exception as e:
-            if attempt < 4:
-                time.sleep((attempt + 1) * 10)
-            else:
-                break
-    
-    raise Exception(f"Bild {idx+1} konnte nicht generiert werden (API Error)")
+            usage = json.loads(used_log.read_text())
+        except Exception:
+            usage = {}
+
+    for f in all_files:
+        if f["name"] not in usage:
+            usage[f["name"]] = 0
+
+    min_usage = min(usage.values())
+    weights = [1.0 / (usage[f["name"]] - min_usage + 1) for f in all_files]
+    chosen = random.choices(all_files, weights=weights, k=1)[0]
+    usage[chosen["name"]] += 1
+    used_log.write_text(json.dumps(usage, indent=2))
+
+    print(f"[image] Lade Bild von Google Drive: {chosen['name']} ...", flush=True)
+    request = service.files().get_media(fileId=chosen["id"])
+    from googleapiclient.http import MediaIoBaseDownload
+    import io
+    fh = io.BytesIO()
+    downloader = MediaIoBaseDownload(fh, request)
+    done = False
+    while not done:
+        _, done = downloader.next_chunk()
+    fh.seek(0)
+    out.write_bytes(fh.read())
+    print(f"  Gespeichert: {out.name} ({out.stat().st_size // 1024} KB)", flush=True)
+    return out
+
+def generate_image(scene: str, idx: int, topic: str = "") -> Path:
+    """Bild zufällig aus Google Drive statt KI-Generierung auswählen."""
+    return download_image_from_drive(idx)
 
 def generate_images(scenes: list, topic: str = ""):
-    """Generate stickman images using Pollinations.ai API."""
-    print(f"[image] {NUM_IMAGES} Stickman-Bilder via Pollinations API...")
-    images = []
-    for i, scene in enumerate(scenes):
-        try:
-            img = generate_image(scene, i, topic)
-            images.append(img)
-        except Exception as e:
-            print(f"[image] ⚠️ Bild {i+1} fehlgeschlagen: {e}")
-            from PIL import Image, ImageDraw, ImageFont, ImageFilter
-            placeholder = IMAGES_DIR / f"scene_{i:02d}.jpg"
-            img = Image.new('RGB', (IMAGE_WIDTH, IMAGE_HEIGHT), (255, 255, 255))
-            draw = ImageDraw.Draw(img)
-            palettes = [(210, 230, 255), (255, 220, 230), (220, 255, 220), (255, 230, 200), (230, 220, 255), (255, 240, 210), (210, 240, 240), (240, 220, 240)]
-            r1, g1, b1 = palettes[i % 8]
-            r2 = min(r1 + 60, 255); g2 = min(g1 + 50, 255); b2 = min(b1 + 40, 255)
-            for y in range(IMAGE_HEIGHT):
-                t = y / IMAGE_HEIGHT
-                r = int(r1 + (r2 - r1) * t)
-                g = int(g1 + (g2 - g1) * t)
-                b = int(b1 + (b2 - b1) * t)
-                draw.line([(0, y), (IMAGE_WIDTH, y)], fill=(r, g, b))
-            img = img.filter(ImageFilter.GaussianBlur(radius=5))
-            draw = ImageDraw.Draw(img)
-            try:
-                font = ImageFont.truetype("arial.ttf", 48)
-            except Exception:
-                font = ImageFont.load_default()
-            draw.text((IMAGE_WIDTH//2 - 250, IMAGE_HEIGHT//2 - 30), f"Scene {i+1}", fill=(80, 60, 120), font=font)
-            img.save(str(placeholder), 'JPEG', quality=90)
-            images.append(placeholder)
-            print(f"[image] Platzhalter {i+1} erstellt")
-    if not images:
-        raise Exception("Keine Bilder konnten generiert werden!")
-    return images
+    """Bilder zufällig aus Google Drive für jede Szene herunterladen."""
+    print(f"[image] {NUM_IMAGES} Bilder zufällig aus Google Drive herunterladen...")
+    return [generate_image(scene, i, topic) for i, scene in enumerate(scenes)]
 
 def generate_tts(story: str):
     """Generate narration using edge-tts (free Microsoft TTS)."""
