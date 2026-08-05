@@ -1,231 +1,193 @@
 """
-Facebook Reels Upload (Resumable)
+Facebook Reels Upload (Resumable 3-Step Reels API v21.0)
 
-Uploads video to the Facebook Page using the Graph API RESUMABLE upload
-protocol (upload_phase=start -> transfer -> finish), then verifies the video
-actually processed and returns the real permalink URL.
+Verified pattern from production repos:
+  1. Start   -> /video_reels  upload_phase=start   -> returns video_id + upload_url
+  2. Transfer-> POST upload_url with OAuth header + raw bytes
+  3. Finish  -> /video_reels  upload_phase=finish video_state=PUBLISHED
+Plus: masked credential logging, pinned-comment with sleep-based retry, and
+no unnecessary polling/API calls.
 """
 
 import os
-import sys
 import time
-import subprocess
 import requests
 from pathlib import Path
 
-if sys.platform == 'win32':
-    import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+from dotenv import load_dotenv
 
-GRAPH_API = "https://graph.facebook.com/v18.0"
-CHUNK_SIZE = 10 * 1024 * 1024  # 10 MB default chunk
+load_dotenv()
+
+GRAPH_API = "https://graph.facebook.com/v21.0"
 
 
-def _compress_video(video_path):
-    """Compress video to a smaller size using ffmpeg."""
-    compressed = Path(video_path).parent / "facebook_compressed.mp4"
-    cmd = [
-        "ffmpeg", "-y",
-        "-i", str(video_path),
-        "-c:v", "libx264",
-        "-preset", "fast",
-        "-crf", "28",
-        "-c:a", "aac",
-        "-b:a", "64k",
-        "-movflags", "+faststart",
-        str(compressed)
-    ]
-    subprocess.run(cmd, check=True, capture_output=True)
-    size_mb = compressed.stat().st_size / (1024 * 1024)
-    print(f"[facebook] Compressed to {size_mb:.2f} MB")
-    return compressed
+def _mask(s):
+    if s and len(s) > 8:
+        return f"{s[:4]}...{s[-4:]}"
+    if s == "***":
+        return "PLACEHOLDER (***)"
+    return "MISSING"
 
 
-def _phase(url, params):
-    """POST a resumable-upload phase and return parsed JSON or raise."""
-    r = requests.post(url, params=params, timeout=300)
-    if r.status_code not in (200, 201):
-        err = r.json().get('error', {}).get('message', r.text) if r.text else 'unknown'
-        raise Exception(f"Resumable phase failed ({r.status_code}): {err}")
-    return r.json()
+def _post_pinned_comment(video_id, description, access_token):
+    """Post description as a pinned comment with sleep-based retry (no wasted calls)."""
+    print("[facebook] Posting description as pinned comment...")
 
+    max_retries = 5
+    comment_id = None
 
-def _upload_resumable(video_path, page_id, access_token, description, title):
-    """Resumable-upload a video file to a Facebook Page."""
-    url = f"{GRAPH_API}/{page_id}/videos"
-    file_size = Path(video_path).stat().st_size
-
-    # Phase 1: start
-    print(f"[facebook] Resumable upload START (size {file_size // 1024} KB)...")
-    start = _phase(url, {
-        'access_token': access_token,
-        'upload_phase': 'start',
-        'file_size': str(file_size),
-        'name': Path(video_path).name,
-    })
-    upload_session_id = start['upload_session_id']
-    start_offset = int(start['start_offset'], 16)
-    end_offset = int(start['end_offset'], 16)
-    chunk_size = int(start.get('video_file_chunk_size', str(CHUNK_SIZE)), 16)
-    print(f"[facebook] Session: {upload_session_id}")
-
-    # Phase 2: transfer (chunked)
-    print(f"[facebook] Resumable upload TRANSFER (chunk size {chunk_size // 1024} KB)...")
-    with open(video_path, 'rb') as f:
-        f.seek(start_offset)
-        while start_offset < end_offset:
-            data = f.read(min(chunk_size, end_offset - start_offset))
-            if not data:
-                raise Exception("Read past end of file during transfer")
-            t = requests.post(
-                url,
-                params={
-                    'access_token': access_token,
-                    'upload_phase': 'transfer',
-                    'upload_session_id': upload_session_id,
-                    'start_offset': hex(start_offset),
-                },
-                data=data,
-                headers={'Content-Type': 'video/mp4'},
-                timeout=300,
-            )
-            if t.status_code not in (200, 201):
-                err = t.json().get('error', {}).get('message', t.text) if t.text else 'unknown'
-                raise Exception(f"Transfer failed: {err}")
-            resp = t.json()
-            start_offset = int(resp['start_offset'], 16)
-            end_offset = int(resp['end_offset'], 16)
-            print(f"[facebook] Transferred {start_offset // 1024} KB / {file_size // 1024} KB")
-
-    # Phase 3: finish
-    print(f"[facebook] Resumable upload FINISH...")
-    fin = _phase(url, {
-        'access_token': access_token,
-        'upload_phase': 'finish',
-        'upload_session_id': upload_session_id,
-        'description': description[:500],
-        'title': title[:100],
-    })
-    video_id = fin.get('video_id')
-    if not video_id:
-        raise Exception(f"Finish response missing video_id: {fin}")
-    print(f"[facebook] ✅ Upload accepted, video ID: {video_id}")
-    return video_id
-
-
-def _wait_for_ready(video_id, page_id, access_token, max_polls=4):
-    """Check video processing status a few times with long sleeps between checks."""
-    sleeps = [60, 45, 45, 45][:max_polls]
-    for i in range(max_polls):
-        time.sleep(sleeps[i])
+    for attempt in range(max_retries):
         try:
-            r = requests.get(
-                f"{GRAPH_API}/{video_id}",
-                params={
-                    'fields': 'status,permalink_url',
-                    'access_token': access_token
-                },
-                timeout=30
-            )
-            if r.status_code != 200:
-                print(f"[facebook] Check [{i+1}/{max_polls}] status query error: {r.text}")
-                continue
-            d = r.json()
-            status = d.get('status', {})
-            video_status = status.get('video_status', '')
-            phase = status.get('processing_phase', {}).get('status', '')
-            print(f"[facebook] Check [{i+1}/{max_polls}]: video_status={video_status} processing={phase}")
-            if video_status == 'ready':
-                return d.get('permalink_url'), video_status
-            if video_status == 'error':
-                return d.get('permalink_url'), video_status
+            comment_url = f"{GRAPH_API}/{video_id}/comments"
+            comment_data = {
+                'access_token': access_token,
+                'message': description[:500]
+            }
+            res_comment = requests.post(comment_url, data=comment_data, timeout=30)
+
+            if res_comment.status_code == 200:
+                resp = res_comment.json()
+                comment_id = resp.get('id')
+                if comment_id:
+                    print(f"[facebook] ✅ Comment posted! ID: {comment_id}")
+                    break
+                print(f"[facebook] Comment response missing ID: {resp}")
+            elif res_comment.status_code == 404 and attempt < max_retries - 1:
+                wait = (attempt + 1) * 10
+                print(f"[facebook] Video not ready for comments yet, retrying in {wait}s...")
+                time.sleep(wait)
+            else:
+                print(f"[facebook] Comment post failed: {res_comment.status_code} - {res_comment.text[:200]}")
+                break
         except Exception as e:
-            print(f"[facebook] Check [{i+1}/{max_polls}] error: {e}")
-    return None, 'processing'
+            print(f"[facebook] Comment post error: {e}")
+            break
+
+    if comment_id:
+        try:
+            pin_url = f"{GRAPH_API}/{comment_id}"
+            pin_data = {
+                'access_token': access_token,
+                'is_pinned': 'true'
+            }
+            res_pin = requests.post(pin_url, data=pin_data, timeout=15)
+            if res_pin.status_code == 200:
+                print(f"[facebook] ✅ Comment pinned to top!")
+            else:
+                print(f"[facebook] Pin attempt: {res_pin.status_code} - {res_pin.text[:200]}")
+        except Exception as e:
+            print(f"[facebook] Pin attempt error: {e}")
+    else:
+        print("[facebook] Could not post comment (video may need processing time)")
 
 
 def upload_to_facebook(video_path, description, title="Kindergeschichten für Kinder"):
     """
-    Upload video to Facebook Page using Graph API RESUMABLE upload.
-    Verifies the video finished processing and returns the real permalink.
+    Upload video to Facebook Page as a Reel using the RESUMABLE 3-step Reels API.
+    Returns dict with upload status and details.
     """
     print("\n" + "=" * 60)
-    print("📘 FACEBOOK UPLOAD STARTING (RESUMABLE)")
+    print("📘 FACEBOOK UPLOAD STARTING (RESUMABLE 3-STEP)")
     print("=" * 60)
 
-    access_token = (os.getenv('FACEBOOK_ACCESS_TOKEN') or
-                    os.getenv('FB_ACCESS_TOKEN') or
-                    os.getenv('META_ACCESS_TOKEN'))
+    # Get credentials
+    access_token = os.getenv('FACEBOOK_ACCESS_TOKEN') or os.getenv('FB_ACCESS_TOKEN') or os.getenv('META_ACCESS_TOKEN')
     page_id = os.getenv('FACEBOOK_PAGE_ID') or os.getenv('FB_PAGE_ID')
 
-    if not access_token:
-        raise ValueError("❌ FACEBOOK_ACCESS_TOKEN not set")
-    if not page_id:
-        raise ValueError("❌ FACEBOOK_PAGE_ID not set")
-
-    print(f"[facebook] ✅ Credentials loaded")
+    # Debug info (masked - never log full tokens)
     print(f"[facebook] Page ID: {page_id}")
+    print(f"[facebook] Access Token: {_mask(access_token)}")
+
+    if not access_token:
+        print("[facebook] ⚠️  Skipping Facebook upload - FACEBOOK_ACCESS_TOKEN not set")
+        return {'status': 'skipped', 'reason': 'Missing credentials', 'platform': 'facebook'}
+
+    if not page_id:
+        print("[facebook] ⚠️  Skipping Facebook upload - FACEBOOK_PAGE_ID not set")
+        return {'status': 'skipped', 'reason': 'Missing credentials', 'platform': 'facebook'}
+
+    print("[facebook] ✅ Credentials loaded")
 
     video_path_obj = Path(video_path)
     if not video_path_obj.exists():
-        raise FileNotFoundError(f"❌ Video file not found: {video_path}")
+        raise FileNotFoundError(f"[facebook] Video file not found: {video_path}")
 
     file_size_mb = video_path_obj.stat().st_size / (1024 * 1024)
     print(f"[facebook] ✅ Video file found: {video_path}")
     print(f"[facebook] Video size: {file_size_mb:.2f} MB")
 
-    # Compress if over 100MB (resumable handles large files, but cap keeps it fast)
-    current_video = video_path_obj
-    if file_size_mb > 100:
-        print(f"[facebook] Video over 100MB, compressing...")
-        current_video = _compress_video(current_video)
+    try:
+        file_size = video_path_obj.stat().st_size
 
-    max_attempts = 3
-    last_error = None
+        # Step 1: Start resumable session
+        print("[facebook] Step 1: Initiating resumable upload session...")
+        start_url = f"{GRAPH_API}/{page_id}/video_reels"
+        start_data = {
+            'access_token': access_token,
+            'upload_phase': 'start',
+            'file_size': file_size
+        }
+        res_start = requests.post(start_url, data=start_data, timeout=30)
 
-    for attempt in range(1, max_attempts + 1):
-        print(f"[facebook] 🚀 Attempt {attempt}/{max_attempts}...")
-        try:
-            video_id = _upload_resumable(
-                current_video, page_id, access_token, description, title
-            )
+        if res_start.status_code != 200:
+            raise Exception(f"Start Phase Failed: {res_start.text[:300]}")
 
-            print(f"[facebook] Waiting for video processing...")
-            permalink, video_status = _wait_for_ready(video_id, page_id, access_token)
+        start_json = res_start.json()
+        video_id = start_json.get('video_id')
+        upload_url = start_json.get('upload_url')
 
-            if current_video != video_path_obj and current_video.exists():
-                current_video.unlink()
+        if not video_id:
+            raise Exception(f"No video_id returned. Response: {start_json}")
 
-            if video_status == 'ready' and permalink:
-                print(f"[facebook] ✅ SUCCESS! Video published!")
-                print(f"[facebook] Video ID: {video_id}")
-                print(f"[facebook] Permalink: {permalink}")
-                print("=" * 60)
-                return {
-                    'id': video_id,
-                    'platform': 'facebook',
-                    'status': 'success',
-                    'url': permalink
-                }
+        # Step 2: Transfer over OAuth
+        print("[facebook] Step 2: Transferring file to Facebook Servers...")
+        headers = {
+            'Authorization': f'OAuth {access_token}',
+            'offset': '0',
+            'file_size': str(file_size)
+        }
+        with open(video_path, 'rb') as f:
+            res_transfer = requests.post(upload_url, headers=headers, data=f, timeout=600)
 
-            if video_status == 'error':
-                msg = f"Facebook video {video_id} failed processing (status=error)"
-                print(f"[facebook] ❌ {msg}")
-                last_error = msg
-            else:
-                msg = f"Facebook video {video_id} still processing after timeout"
-                print(f"[facebook] ⚠️ {msg}")
-                last_error = msg
+        if res_transfer.status_code != 200:
+            raise Exception(f"Transfer Phase Failed: {res_transfer.text[:300]}")
 
-        except Exception as e:
-            last_error = str(e)
-            print(f"[facebook] ❌ Attempt {attempt} failed: {last_error}")
+        # Step 3: Finish
+        print("[facebook] Step 3: Publishing Reel...")
+        finish_url = f"{GRAPH_API}/{page_id}/video_reels"
+        finish_data = {
+            'access_token': access_token,
+            'upload_phase': 'finish',
+            'video_id': video_id,
+            'description': description,
+            'video_state': 'PUBLISHED'
+        }
+        res_finish = requests.post(finish_url, data=finish_data, timeout=60)
 
-        if attempt < max_attempts:
-            wait = attempt * 15
-            print(f"[facebook] Waiting {wait}s before retry...")
-            time.sleep(wait)
+        if res_finish.status_code == 200 and res_finish.json().get('success'):
+            print("[facebook] ✅ SUCCESS! Reel uploaded to Facebook!")
+            print(f"[facebook] Video ID: {video_id}")
 
-    print("=" * 60)
-    raise Exception(f"Facebook upload failed after {max_attempts} attempts. Last error: {last_error}")
+            # Post description as a pinned comment (sleep-based retry)
+            _post_pinned_comment(video_id, description, access_token)
+
+            print("[facebook] Check your Facebook Page Reels tab to see the post.")
+            print("=" * 60)
+            return {
+                'id': video_id,
+                'platform': 'facebook',
+                'status': 'success',
+                'url': f"https://facebook.com/{video_id}"
+            }
+        else:
+            raise Exception(f"Finish Phase Failed: {res_finish.text[:300]}")
+
+    except requests.exceptions.Timeout:
+        raise Exception("⏱️ Upload timed out (video too large or slow connection)")
+
+    except requests.exceptions.ConnectionError as e:
+        raise Exception(f"🌐 Connection error: {str(e)[:200]}")
+
+    except Exception as e:
+        print(f"[facebook] ❌ UNEXPECTED ERROR: {e}")
+        raise
