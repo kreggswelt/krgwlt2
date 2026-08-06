@@ -41,7 +41,7 @@ def main():
         return
     
     # Read topic from used_topics.txt (unique each run)
-    title = "Kindergeschichte"
+    title = "Psychologie & Selbstentwicklung"
     if os.path.exists("used_topics.txt"):
         with open("used_topics.txt", "r", encoding="utf-8") as f:
             lines = [line.strip() for line in f if line.strip()]
@@ -63,12 +63,12 @@ def main():
 
 {story_text}
 
-#Kindergeschichten #Märchen #Deutsch #FürKinder #Shorts #Geschichten #Lernen"""
+#Psychologie #Selbstentwicklung #Motivation #Deutsch #Kurzfilme #Shorts"""
 
     
     tags = [
-        'Kindergeschichten', 'Märchen', 'Deutsch', 'Für Kinder',
-        'Shorts', 'Animation', 'Lernen', 'Bildung'
+        'Psychologie', 'Selbstentwicklung', 'Motivation', 'Deutschland',
+        'Shorts', 'Mentalitaet', 'Emotionale Intelligenz', 'Deutsch'
     ]
     
     results = {}

@@ -60,7 +60,7 @@ def upload_to_vk(video_path, description="", title=""):
         upload = vk_api.VkUpload(vk_session)
         
         # Prepare message
-        message = description if description else "✨ Eine neue Kindergeschichte!\n\n#Kindergeschichten #Märchen #Deutsch"
+        message = description if description else "Psychologie & Selbstentwicklung\n\n#Psychologie #Selbstentwicklung #Deutsch"
         
         # Ensure message is not empty (VK requirement)
         if not message.strip():
@@ -74,7 +74,7 @@ def upload_to_vk(video_path, description="", title=""):
         try:
             video = upload.video(
                 video_file=str(video_path),
-                name=title or 'Kindergeschichten für Kinder',
+                name=title or 'Psychologie & Selbstentwicklung',
                 description=description[:220] if description else '',
                 group_id=group_id_int, 
                 wallpost=0
@@ -151,8 +151,8 @@ def main():
         sys.exit(1)
     
     video_path = sys.argv[1]
-    description = sys.argv[2] if len(sys.argv) > 2 else "Eine neue Kindergeschichte! ✨"
-    title = sys.argv[3] if len(sys.argv) > 3 else "Kindergeschichte für Kinder"
+    description = sys.argv[2] if len(sys.argv) > 2 else "Psychologie & Selbstentwicklung"
+    title = sys.argv[3] if len(sys.argv) > 3 else "Psychologie & Selbstentwicklung"
     
     try:
         result = upload_to_vk(video_path, description, title)
