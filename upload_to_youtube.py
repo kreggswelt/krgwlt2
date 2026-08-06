@@ -115,7 +115,7 @@ def main():
     if topic:
         title = topic
     else:
-        title = "Kindergeschichte"
+        title = "Psychologie & Selbstentwicklung"
     
     # Include story text in description
     story_text = ""
@@ -127,11 +127,11 @@ def main():
 
 {story_text}
 
-#Kindergeschichten #Märchen #Deutsch #FürKinder #Shorts"""
+#Psychologie #Selbstentwicklung #Deutsch #Kurzfilme #Shorts"""
     
     tags = [
-        'Kindergeschichten', 'Kinder', 'Tiere', 'Deutschland', 'Kids',
-        'Shorts', 'Animation', 'Geschichten für Kinder', 'German', 'Deutsch'
+        'Psychologie', 'Selbstentwicklung', 'Motivation', 'Deutschland', 'Kurzfilme',
+        'Shorts', 'Mentalitaet', 'Emotionale Intelligenz', 'German', 'Deutsch'
     ]
     
     # Upload
