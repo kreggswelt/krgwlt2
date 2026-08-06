@@ -81,7 +81,7 @@ def _post_pinned_comment(video_id, description, access_token):
         print("[facebook] Could not post comment (video may need processing time)")
 
 
-def upload_to_facebook(video_path, description, title="Kindergeschichten für Kinder"):
+def upload_to_facebook(video_path, description, title="Psychologie & Selbstverbesserung"):
     """
     Upload video to Facebook Page as a Reel using the RESUMABLE 3-step Reels API.
     Returns dict with upload status and details.
