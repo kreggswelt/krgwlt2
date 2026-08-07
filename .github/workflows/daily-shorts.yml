@@ -31,7 +31,7 @@ jobs:
         sudo apt-get install -y ffmpeg
 
     - name: Cache Vosk Model
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: vosk-model-small-de-0.15
         key: vosk-de-model-${{ runner.os }}
