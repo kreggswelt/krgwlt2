@@ -482,3 +482,4 @@
 2026-09-25: Mut zur Veränderung: Eine Sache kündigen, die dich auslaugt
 2026-09-25: Perfektionismus entwaffnen: „Genug“-Kriterium vor dem Start festlegen
 2026-09-25: Emotionen verstehen: Gefühle benennen statt wegdrücken
+2026-09-26: Stressabbau mit Körper-Signalen: Spannungscue → kurze Gegenmaßnahme
