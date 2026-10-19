@@ -563,3 +563,4 @@
 2026-10-18: Respektvolle Kommunikation: Tonfall-Check vor schwierigen Nachrichten
 2026-10-19: Verhaltensänderung ohne Willenskraft: Hindernisse entfernen, nicht nur kämpfen
 2026-10-19: Selbstwirksamkeit durch Planung: Kalender blocken statt „vielleicht“
+2026-10-19: Emotionen als Daten: Gefühl → Hinweis → Handlung in Mini-Schritten
