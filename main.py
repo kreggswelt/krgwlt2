@@ -209,7 +209,7 @@ def generate_story_with_pollinations(topic: str) -> str:
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "openai",
+        "model": "openai/gpt-5.4-nano",
         "temperature": 1.3,
         "messages": [
             {"role": "system", "content": system_prompt},
@@ -373,7 +373,7 @@ def generate_visual_prompts(story: str) -> list:
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "openai",
+        "model": "openai/gpt-5.4-nano",
         "temperature": 1.4,
         "seed": random.randint(1, 999999),
         "messages": [
