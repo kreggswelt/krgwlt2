@@ -626,3 +626,4 @@
 2026-11-05: Überforderung durch Struktur: Tagesplan in „Startzeiten“ statt Aufgabenliste
 2026-11-06: Selbstdisziplin mit Energie: Nach Energielevel planen, nicht nach Wunsch
 2026-11-07: Sicherer Umgang mit Tränen: Erlauben, beobachten, beruhigen
+2026-11-08: Innere Widersprüche lösen: Bedürfnisse von Werten trennen und abstimmen
